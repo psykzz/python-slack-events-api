@@ -1,4 +1,8 @@
 from pyee import EventEmitter
+from tornado.wsgi import WSGIContainer
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
+
 from .server import SlackServer
 
 
@@ -10,7 +14,7 @@ class SlackEventAdapter(EventEmitter):
         self.verification_token = verification_token
         self.server = SlackServer(verification_token, endpoint, self, server)
 
-    def start(self, host='127.0.0.1', port=None, debug=False, **kwargs):
+    def start(self, host='127.0.0.1', port=None):
         """
         Start the built in webserver, bound to the host and port you'd like.
         Default host is `127.0.0.1` and port 8080.
@@ -18,6 +22,7 @@ class SlackEventAdapter(EventEmitter):
         :param host: The host you want to bind the build in webserver to
         :param port: The port number you want the webserver to run on
         :param debug: Set to `True` to enable debug level logging
-        :param kwargs: Additional arguments you'd like to pass to Flask
         """
-        self.server.run(host=host, port=port, debug=debug, **kwargs)
+        http_server = HTTPServer(WSGIContainer(self.server))
+        http_server.listen(port, address=host)
+        IOLoop.instance().start()
